@@ -6,12 +6,17 @@ import CreateArea from "./CreateArea";
 
 function App() {
   const [notes, setNotes] = useState([]);
+  const [message, setMessage] = useState("");
 
   function addNote(note) {
     if (note.content.trim() !== "") {
       setNotes((prevNotes) => {
         return [...prevNotes, note];
       });
+      setMessage("Note added");
+      setTimeout(() => {
+        setMessage("");
+      }, 2000);
     }
   }
 
@@ -27,6 +32,7 @@ function App() {
     <div>
       <Header />
       <CreateArea onAdd={addNote} />
+      {message && <p>{message}</p>}
       {notes.map((noteItem, index) => (
         <Note
           key={index}
