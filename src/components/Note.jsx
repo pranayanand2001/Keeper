@@ -2,7 +2,9 @@ import React from "react";
 
 function Note(props) {
   function handleDelete() {
-    props.onDelete(props.id);
+    if (window.confirm("Are you sure you want to delete this note?")) {
+      props.onDelete(props.id);
+    }
   }
 
   return (
