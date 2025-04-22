@@ -8,7 +8,6 @@
   --primary-color: #f5ba13;
   --dark-bg: #1a1a1a;
   --dark-surface: #2d2d2d;
-  --dark-text: #ffffff;
   --light-text: #333333;
   --dark-border: rgba(255, 255, 255, 0.1);
   --light-bg: #f5f5f5;
@@ -48,10 +47,6 @@ body {
 
 .dark-theme .note h1 {
   color: var(--primary-color);
-}
-
-.dark-theme .note p {
-  color: #ccc;
 }
 
 .dark-theme .note-content {
@@ -298,6 +293,30 @@ header h1 {
   resize: vertical;
   padding: 8px;
   margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.create-note textarea.note-content {
+  width: 100%;
+  min-height: 60px;
+  padding: 1.2rem 1.5rem;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1.6;
+  transition: var(--transition);
+  cursor: text;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+}
+
+.create-note form.expanded textarea.note-content {
+  min-height: 120px;
 }
 
 .note-buttons {

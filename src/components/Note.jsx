@@ -72,17 +72,13 @@ function Note(props) {
             placeholder="Title"
             autoFocus
           />
-          <div
+          <textarea
             ref={contentEditableRef}
+            name="content"
+            value={editedNote.content}
+            onChange={handleChange}
             className="edit-content"
-            contentEditable
-            onInput={(e) => handleChange({
-              target: {
-                name: 'content',
-                value: e.currentTarget.innerHTML
-              }
-            })}
-            dangerouslySetInnerHTML={{ __html: editedNote.content }}
+            placeholder="Take a note..."
           />
           <div className="note-controls">
             <div className="note-buttons">
@@ -104,7 +100,12 @@ function Note(props) {
             </button>
           </div>
           <div className="note-content">
-            {props.content}
+            {props.content.split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                {index < props.content.split('\n').length - 1 && <br />}
+              </React.Fragment>
+            ))}
           </div>
           <div className="note-footer">
             <p className="note-meta">

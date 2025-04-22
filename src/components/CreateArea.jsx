@@ -4,7 +4,7 @@ function CreateArea(props) {
   const [note, setNote] = useState({ title: "", content: "", color: "#ffffff", tags: "" });
   const [isExpanded, setIsExpanded] = useState(false);
   const [charCount, setCharCount] = useState(0);
-  const contentEditableRef = useRef(null);
+  const contentRef = useRef(null);
 
   const noteColors = [
     { value: "#ffffff", label: "Default" },
@@ -17,19 +17,16 @@ function CreateArea(props) {
     { value: "#ffe4c4", label: "Bisque" }
   ];
 
-  useEffect(() => {
-    if (contentEditableRef.current && !note.content) {
-      contentEditableRef.current.innerHTML = "";
-      setCharCount(0);
-    }
-  }, [note.content]);
-
   function handleChange(event) {
     const { name, value } = event.target;
     setNote((prevNote) => ({
       ...prevNote,
       [name]: value,
     }));
+    
+    if (name === "content") {
+      setCharCount(value.length);
+    }
   }
 
   function handleColorChange(color) {
@@ -37,17 +34,6 @@ function CreateArea(props) {
       ...prevNote,
       color: color,
     }));
-  }
-
-  function handleContentChange(event) {
-    if (contentEditableRef.current) {
-      const content = contentEditableRef.current.innerHTML;
-      setNote((prevNote) => ({
-        ...prevNote,
-        content: content,
-      }));
-      setCharCount(content.replace(/<[^>]*>/g, '').length);
-    }
   }
 
   function handleExpand() {
@@ -83,14 +69,14 @@ function CreateArea(props) {
           />
         )}
         
-        <div
-          ref={contentEditableRef}
+        <textarea
+          ref={contentRef}
+          name="content"
           className="note-content"
-          contentEditable
-          onInput={handleContentChange}
-          onClick={handleExpand}
           placeholder="Take a note... (Ctrl + Enter to save)"
-          suppressContentEditableWarning={true}
+          value={note.content}
+          onChange={handleChange}
+          onClick={handleExpand}
         />
 
         {isExpanded && (
