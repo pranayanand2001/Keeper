@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FaTh, FaList, FaSun, FaMoon } from 'react-icons/fa';
 import Header from "./Header";
 import Footer from "./Footer";
 import Note from "./Note";
@@ -7,7 +8,15 @@ import CreateArea from "./CreateArea";
 function App() {
   const [notes, setNotes] = useState(() => {
     const savedNotes = localStorage.getItem("notes");
-    return savedNotes ? JSON.parse(savedNotes) : [];
+    if (savedNotes == null) {
+      return [];
+    }
+    try {
+      return JSON.parse(savedNotes);
+    } catch (error) {
+      console.error("Failed to parse notes:", error);
+      return [];
+    }
   });
   const [message, setMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,11 +33,18 @@ function App() {
       .then(data => {
         setNotes(data);
         localStorage.setItem("notes", JSON.stringify(data));
+      })
+      .catch(error => {
+        console.error("Failed to fetch notes:", error);
       });
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("notes", JSON.stringify(notes));
+    try {
+      localStorage.setItem("notes", JSON.stringify(notes));
+    } catch (error) {
+      console.error("Failed to save notes:", error);
+    }
   }, [notes]);
 
   function toggleTheme() {
@@ -40,52 +56,86 @@ function App() {
   }
 
   function addNote(note) {
-    if (note.content.trim() !== "") {
-      const newNote = { ...note, pinned: false, lastModified: new Date().toLocaleString() };
+    if (note == null || note.content.trim() === "") {
+      console.error("Invalid note");
+      return;
+    }
+
+    const newNote = { 
+      ...note, 
+      id: Date.now(), // Add unique ID
+      pinned: false, 
+      lastModified: new Date().toLocaleString() 
+    };
+    
+    setNotes((prevNotes) => {
+      if (!Array.isArray(prevNotes)) {
+        console.error("Notes data is corrupted");
+        return prevNotes;
+      }
+      setHistory([...prevNotes]);
+      setRedoStack([]);
+      return [...prevNotes, newNote];
+    });
+    setMessage("Note added");
+    setTimeout(() => {
+      setMessage("");
+    }, 2000);
+
+    // Send new note to backend
+    fetch("/api/notes", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(newNote)
+    }).catch(error => {
+      console.error("Failed to add note to backend:", error);
+    });
+  }
+
+  function deleteNote(noteId) {
+    if (noteId == null) {
+      console.error("Invalid note ID");
+      return;
+    }
+
+    try {
       setNotes((prevNotes) => {
+        const updatedNotes = prevNotes.filter((note) => note.id !== noteId);
         setHistory([...prevNotes]);
         setRedoStack([]);
-        return [...prevNotes, newNote];
+        return updatedNotes;
       });
-      setMessage("Note added");
-      setTimeout(() => {
-        setMessage("");
-      }, 2000);
 
-      // Send new note to backend
-      fetch("/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(newNote)
+      // Delete note from backend
+      fetch(`/api/notes/${noteId}`, {
+        method: "DELETE"
+      }).catch(error => {
+        console.error("Failed to delete note from backend:", error);
       });
+    } catch (error) {
+      console.error("Failed to delete note:", error);
     }
   }
 
-  function deleteNote(id) {
-    setNotes((prevNotes) => {
-      setHistory([...prevNotes]);
-      setRedoStack([]);
-      return prevNotes.filter((note, index) => index !== id);
-    });
-
-    // Delete note from backend
-    fetch(`/api/notes/${id}`, {
-      method: "DELETE"
-    });
-  }
-
   function editNote(id, updatedNote) {
+    if (id == null || updatedNote == null) {
+      console.error("Invalid note ID or null note");
+      return;
+    }
+
     setNotes((prevNotes) => {
-      setHistory([...prevNotes]);
-      setRedoStack([]);
-      return prevNotes.map((note, index) => {
-        if (index === id) {
-          return { ...updatedNote, lastModified: new Date().toLocaleString() };
+      const updatedNotes = prevNotes.map((note) => {
+        if (note.id === id) {
+          return { ...note, ...updatedNote, lastModified: new Date().toLocaleString() };
         }
         return note;
       });
+
+      setHistory([...prevNotes]);
+      setRedoStack([]);
+      return updatedNotes;
     });
 
     // Update note in backend
@@ -95,6 +145,8 @@ function App() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify(updatedNote)
+    }).catch(error => {
+      console.error("Failed to update note in backend:", error);
     });
   }
 
@@ -116,14 +168,16 @@ function App() {
 
   function togglePin(id) {
     setNotes((prevNotes) => {
-      setHistory([...prevNotes]);
-      setRedoStack([]);
-      return prevNotes.map((note, index) => {
-        if (index === id) {
+      const updatedNotes = prevNotes.map((note) => {
+        if (note.id === id) {
           return { ...note, pinned: !note.pinned };
         }
         return note;
       });
+
+      setHistory([...prevNotes]);
+      setRedoStack([]);
+      return updatedNotes;
     });
   }
 
@@ -167,18 +221,18 @@ function App() {
         </div>
         <div className="view-controls">
           <button onClick={toggleView}>
-            {isGridView ? "📋 List View" : "📑 Grid View"}
+            {isGridView ? <FaList /> : <FaTh /> }
           </button>
           <button onClick={toggleTheme}>
-            {isDarkTheme ? "☀️ Light" : "🌙 Dark"}
+            {isDarkTheme ? <FaSun /> : <FaMoon />}
           </button>
         </div>
         <div className="history-controls">
           <button onClick={undo} disabled={history.length === 0}>
-            ↩️ Undo
+            Undo
           </button>
           <button onClick={redo} disabled={redoStack.length === 0}>
-            ↪️ Redo
+            Redo
           </button>
         </div>
       </div>
@@ -187,10 +241,10 @@ function App() {
       {message && <p className="message">{message}</p>}
       
       <div className={`notes-container ${isGridView ? "grid-view" : "list-view"}`}>
-        {sortedNotes.map((noteItem, index) => (
+        {sortedNotes.map((noteItem) => (
           <Note
-            key={index}
-            id={index}
+            key={noteItem.id}
+            id={noteItem.id}
             title={noteItem.title}
             content={noteItem.content}
             color={noteItem.color}

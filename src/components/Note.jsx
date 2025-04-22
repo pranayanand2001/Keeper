@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 function Note(props) {
   const [isEditing, setIsEditing] = useState(false);
@@ -7,6 +7,13 @@ function Note(props) {
     content: props.content,
     color: props.color
   });
+  const contentEditableRef = useRef(null);
+
+  useEffect(() => {
+    if (isEditing && contentEditableRef.current) {
+      contentEditableRef.current.focus();
+    }
+  }, [isEditing]);
 
   function handleDelete() {
     if (window.confirm("Are you sure you want to delete this note?")) {
@@ -19,8 +26,15 @@ function Note(props) {
   }
 
   function handleSave() {
-    props.onEdit(props.id, editedNote);
-    setIsEditing(false);
+    const cleanContent = editedNote.content.trim();
+    if (cleanContent || editedNote.title.trim()) {
+      props.onEdit(props.id, {
+        ...editedNote,
+        content: cleanContent,
+        lastModified: new Date().toLocaleString()
+      });
+      setIsEditing(false);
+    }
   }
 
   function handleChange(event) {
@@ -31,11 +45,23 @@ function Note(props) {
     }));
   }
 
+  function handleKeyDown(e) {
+    if (e.key === 'Escape') {
+      setIsEditing(false);
+    } else if (e.key === 'Enter' && e.ctrlKey) {
+      handleSave();
+    }
+  }
+
   const characterCount = props.content.length;
-  const wordCount = props.content.trim().split(/\s+/).length;
+  const wordCount = props.content.trim().split(/\s+/).filter(word => word.length > 0).length;
 
   return (
-    <div className="note" style={{backgroundColor: props.color}}>
+    <div 
+      className={`note ${props.pinned ? 'pinned' : ''}`} 
+      style={{backgroundColor: props.color}}
+      onKeyDown={handleKeyDown}
+    >
       {isEditing ? (
         <>
           <input
@@ -43,33 +69,53 @@ function Note(props) {
             value={editedNote.title}
             onChange={handleChange}
             className="edit-title"
+            placeholder="Title"
+            autoFocus
           />
-          <textarea
-            name="content"
-            value={editedNote.content}
-            onChange={handleChange}
+          <div
+            ref={contentEditableRef}
             className="edit-content"
+            contentEditable
+            onInput={(e) => handleChange({
+              target: {
+                name: 'content',
+                value: e.currentTarget.innerHTML
+              }
+            })}
+            dangerouslySetInnerHTML={{ __html: editedNote.content }}
           />
-          <input
-            type="color"
-            name="color"
-            value={editedNote.color}
-            onChange={handleChange}
-          />
-          <div className="note-buttons">
-            <button onClick={handleSave}>Save</button>
-            <button onClick={() => setIsEditing(false)}>Cancel</button>
+          <div className="note-controls">
+            <div className="note-buttons">
+              <button onClick={handleSave} title="Save (Ctrl + Enter)">💾</button>
+              <button onClick={() => setIsEditing(false)} title="Cancel (Esc)">❌</button>
+            </div>
           </div>
         </>
       ) : (
         <>
-          <h1>{props.title}</h1>
-          <p>{props.content}</p>
-          <p className="timestamp">Last Modified: {props.lastModified}</p>
-          <p>Characters: {characterCount} | Words: {wordCount}</p>
-          <div className="note-buttons">
-            <button onClick={handleEdit}>✏️</button>
-            <button onClick={handleDelete}>🗑️</button>
+          <div className="note-header">
+            <h1>{props.title}</h1>
+            <button 
+              onClick={() => props.onTogglePin(props.id)}
+              className={`pin-button ${props.pinned ? 'pinned' : ''}`}
+              title={props.pinned ? 'Unpin note' : 'Pin note'}
+            >
+              📌
+            </button>
+          </div>
+          <div className="note-content">
+            {props.content}
+          </div>
+          <div className="note-footer">
+            <p className="note-meta">
+              <span title="Character count">📝 {characterCount}</span>
+              <span title="Word count">📚 {wordCount}</span>
+              <span title="Last modified">🕒 {props.lastModified}</span>
+            </p>
+            <div className="note-buttons">
+              <button onClick={handleEdit} title="Edit note">✏️</button>
+              <button onClick={handleDelete} title="Delete note">🗑️</button>
+            </div>
           </div>
         </>
       )}

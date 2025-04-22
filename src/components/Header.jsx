@@ -6,9 +6,15 @@ function Header() {
   useEffect(() => {
     setVisible(true);
   }, []);
+  
   return (
-    <header className={visible ? "visible" : ""}>
-      <h1>Keeper</h1>
+    <header className={`header ${visible ? "visible" : ""}`}>
+      <div className="header-content">
+        <h1>
+          <span className="header-icon">📝</span>
+          Keeper
+        </h1>
+      </div>
     </header>
   );
 }
